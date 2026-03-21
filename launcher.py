@@ -90,7 +90,7 @@ class TBIcon(wx.adv.TaskBarIcon):
             self.frame.Hide()
 
 def get_changed(from_c, to_c):
-    comp = r.get(f"https://api.github.com/repos/9D-Crew/freestar4k/compare/{from_c}...{to_c}").json()
+    comp = r.get(f"https://api.github.com/repos/LeWolfYT/freestar4k/compare/{from_c}...{to_c}").json()
     changed = []
     for f in comp.get("files", []):
         changed.append({"filename": f["filename"], "status": f["status"], "url": f.get("raw_url")})
@@ -151,11 +151,11 @@ def check_updates(frame):
     tags = None
     commits = None
     try:
-        tags = r.get("https://api.github.com/repos/9D-Crew/freestar4k/tags").json()
+        tags = r.get("https://api.github.com/repos/LeWolfYT/freestar4k/tags").json()
     except:
         err = True
     try:
-        commits = r.get("https://api.github.com/repos/9D-Crew/freestar4k/commits").json()
+        commits = r.get("https://api.github.com/repos/LeWolfYT/freestar4k/commits").json()
     except:
         err =  True
     if err:
