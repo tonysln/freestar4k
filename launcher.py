@@ -611,8 +611,8 @@ class Launcher(wx.Frame):
             radarint.SetValue(existing_conf.get("radarint", 0.25))
             radarhold.SetValue(existing_conf.get("radarhold", 2.50))
             nat.SetValue(existing_conf.get("ldllf", False))
-            mainlogo.SetPath(existing_conf.get("mainlogo", "logos/twc99logo.png"))
-            radarlogo.SetPath(existing_conf.get("radarlogo", "logos/twc99radar.png"))
+            mainlogo.SetPath(existing_conf.get("mainlogo", "assets/logos/twc99logo.png"))
+            radarlogo.SetPath(existing_conf.get("radarlogo", "assets/logos/twc99radar.png"))
             
             t1, t2, n1, n2 = existing_conf.get("tidal", ("", "", "", ""))
             t1i.SetValue(t1)

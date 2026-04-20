@@ -262,7 +262,7 @@ else:
     rwin = pg.display.set_mode((rwidth, 480), flags=(borderless*pg.NOFRAME)|pg.RESIZABLE)
 
 pg.display.set_caption(f"FreeStar 4000 v{VERSION}")
-icon = pg.image.load("mwsicon.png")
+icon = pg.image.load("assets/mwsicon.png")
 pg.display.set_icon(icon)
 
 ext_loaded = []
@@ -326,11 +326,11 @@ al_g = draw_palette_gradient(pg.Rect(0, 0, screenw, 96), bg_c)
 alertdata = [None, []]
 alertactive = 0
 
-mainicon = pg.image.load_animation("icons_cc/Partly-Cloudy.gif")
-ldllficon = pg.image.load_animation("icons_reg/Partly-Cloudy.gif")
+mainicon = pg.image.load_animation("icons/icons_cc/Partly-Cloudy.gif")
+ldllficon = pg.image.load_animation("icons/icons_reg/Partly-Cloudy.gif")
 xficons = [None, None, None, None, None, None]
 
-regmap = pg.image.load("regmap.png")
+regmap = pg.image.load("assets/regmap.png")
 regmapcut = pg.Surface((screenw, 480), pg.SRCALPHA)
 regmapcut.fill(_gray)
 
@@ -410,7 +410,7 @@ if ldlbg:
 else:
     ws2 = pg.Surface((1, 1), pg.SRCALPHA)
 
-noaa = pg.image.load("noaa.gif").convert_alpha()
+noaa = pg.image.load("assets/noaa.gif").convert_alpha()
 
 logo = pg.image.load(mainlogo)
 logorad = pg.image.load(radarlogo)
@@ -626,10 +626,10 @@ for ext in ext_loaded:
         parse_ext_action(ext_action)
 
 if not mute:
-    beep = pg.Sound("beep.ogg")
+    beep = pg.Sound("assets/beep.ogg")
 radarx = ['', '99'][radarsetting]
-radarHeader = pg.transform.scale(pg.image.load(f"radar{radarx}.png"), (768, 480))
-radarHeaderC = pg.transform.scale(pg.image.load(f"radarc{radarx}.png"), (768, 480))
+radarHeader = pg.transform.scale(pg.image.load(f"assets/radar{radarx}.png"), (768, 480))
+radarHeaderC = pg.transform.scale(pg.image.load(f"assets/radarc{radarx}.png"), (768, 480))
 if screenw > 768:
     radarLeft = pg.transform.scale(radarHeader.subsurface(pg.Rect(0, 0, 1, radarHeader.get_height())), (m.ceil((screenw-768)/2), radarHeader.get_height()))
     radarRight = pg.transform.scale(radarHeader.subsurface(pg.Rect(radarHeader.get_width()-1, 0, 1, radarHeader.get_height())), (m.ceil((screenw-768)/2), radarHeader.get_height()))
@@ -640,10 +640,10 @@ if screenw > 768:
 latestframe = pg.Surface((1, 1))
 vidcap = None
 
-moon_full = pg.image.load("moon/Full-Moon.gif").convert_alpha()
-moon_lq = pg.image.load("moon/Last-Quarter.gif").convert_alpha()
-moon_fq = pg.image.load("moon/First-Quarter.gif").convert_alpha()
-moon_new = pg.image.load("moon/New-Moon.gif").convert_alpha()
+moon_full = pg.image.load("assets/moon/Full-Moon.gif").convert_alpha()
+moon_lq = pg.image.load("assets/moon/Last-Quarter.gif").convert_alpha()
+moon_fq = pg.image.load("assets/moon/First-Quarter.gif").convert_alpha()
+moon_new = pg.image.load("assets/moon/New-Moon.gif").convert_alpha()
 
 # Set up music
 res.musicfiles = musicfiles
@@ -679,7 +679,7 @@ if outputs:
         set_post_mix(res.postmix(audio_queue))
         th.Thread(target=res.dowriteaudio, args=(outputs, audio_queue, audio_ready_event, frame_idx_actual_ref), daemon=True).start()
 
-xfbg = pg.image.load("xfbg.png")
+xfbg = pg.image.load("assets/xfbg.png")
 
 subpage = 0
 
