@@ -380,8 +380,6 @@ class Launcher(wx.Frame):
                 set_flags.append(6)
             if "warnpalbug" in flg:
                 set_flags.append(7)
-            if "oldal" in flg:
-                set_flags.append(8)
             if "uppercaseAMPM" in flg:
                 set_flags.append(9)
             if "fullOldCC" in flg:
@@ -729,7 +727,6 @@ class Launcher(wx.Frame):
         #flavorl: list of slides added
         pagemap2 = {
             "cc": "Current Conditions",
-            "oldcc": "Old Current Conditions",
             "lo": "Latest Observations",
             "ro": "Regional Observations",
             "lf": "36-Hour Forecast",
@@ -1103,7 +1100,6 @@ class Launcher(wx.Frame):
             if 5 in flg: misc.add("ccspace")
             if 6 in flg: misc.add("oldtitles")
             if 7 in flg: misc.add("warnpalbug")
-            if 8 in flg: misc.add("oldal")
             if 9 in flg: misc.add("uppercaseAMPM")
             if 10 in flg: misc.add("fullOldCC")
             if 11 in flg: misc.add("whiteXF")

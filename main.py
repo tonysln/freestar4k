@@ -14,7 +14,7 @@ import gc
 from calculations import (
     seconds, minutes, hours, profiling_start, profiling_end, clear_profile,
     splubby_the_return, padtext, textmerge, wraptext, drawing, windreduce,
-    shorten_phrase, mapper, lerp, safedivide, time_fmt, AccuraterClock,
+    shorten_phrase, mapper, lerp, safedivide, time_fmt, AccurateClock,
     chars
 )
 import drawing as draw_mod
@@ -23,10 +23,7 @@ from drawing import (
     drawshadow, drawpage, drawpage2, drawpage_fmt, drawreg
 )
 import resources as res
-from resources import (
-    icontable, regionalicontable, xficontable, icon_offset,
-    loadjrfont, quickread, connsendall, sendtoall
-)
+from resources import icontable, regionalicontable, xficontable, icon_offset, loadjrfont, quickread
 
 VERSION = "1.2.3 Unstable A"
 
@@ -51,7 +48,7 @@ pg.font.init()
 textpos = 0
 
 ##star time drawing delay
-timedrawing = False
+timedrawing = True
 
 ##ldl drawing delay
 ldldrawing = True
@@ -119,8 +116,6 @@ sm2 = True
 compress = False
 
 jr = True
-
-sockets = False
 
 radarint = 0.26
 radarhold = 2.74
@@ -192,7 +187,6 @@ try:
     rl = getattr(conf, "reglocs", [])
     rn = getattr(conf, "regnames", [])
     reglocs = [[rl[i], rn[i], None, None] for i in range(min(len(rl), len(rn)))]
-    outputs = [o for o in conf.outputs if not o.startswith("#")]
     ldlfeed = conf.ldlfeed
     ldlbg = conf.ldlbg
     old = conf.old
@@ -202,7 +196,6 @@ try:
     schedule = conf.schedule
     sm2 = conf.aspect
     smode = conf.smode
-    sockets = conf.socket
     radarint = conf.radarint
     radarhold = conf.radarhold
     ldllf = conf.ldllf
@@ -211,7 +204,6 @@ try:
     radarlogo = conf.radarlogo
     extensions = conf.extensions
     adevice = conf.audiodevice
-    metric = conf.metric
     borderless = conf.borderless
     vencoder = conf.vencoder
     mute = conf.mute
@@ -232,23 +224,13 @@ os.chdir(os.path.dirname(os.path.abspath(__file__))) #do this or everything expl
 if not mute:
     pg.mixer.init(audiorate, devicename=(adevice if adevice != "Default" else None))
 
-if outputs and not mute:
-    from pygame._sdl2.mixer import set_post_mix
-
 colorbug_started = False
 colorbug_nat = (flavor[-1] in ["lr", "cr"])
 
-temp_symbol = ["F", "C"][metric]
-speed_unit = ["MPH", "KM/H"][metric]
-long_dist = ["mi.", "km."][metric]
-short_dist = ["ft.", "m."][metric]
-
-if sockets:
-    import socket
-    import os
-    server_addr = ("127.0.0.1", 4000)
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+temp_symbol = "F"
+speed_unit = "MPH"
+long_dist = "mi."
+short_dist = "ft."
 
 screenw = 768 if not widescreen else 1024
 
@@ -265,30 +247,9 @@ pg.display.set_caption(f"FreeStar 4000 v{VERSION}")
 icon = pg.image.load("assets/mwsicon.png")
 pg.display.set_icon(icon)
 
-ext_loaded = []
-for ext in extensions:
-    ext_loaded.append(runpy.run_path(f"extensions/{ext}/main.py")) #load extension
-
 ldlfeedactive = (ldlfeed is not None and ldlfeed)
 
 avscale = (640 if not widescreen else 853, 480)
-
-if ldlfeedactive:
-    try:
-        import cv2
-    except ModuleNotFoundError:
-        print("Install the opencv-python module to use feed input!")
-        ldlfeed = None
-        ldlfeedactive = False
-
-if outputs:
-    try:
-        import av
-        avevent = th.Event()
-        avbuffer = pg.Surface(avscale)
-    except ModuleNotFoundError:
-        print("Install the av module to use stream output!")
-        outputs = None
 
 showing = 0
 
@@ -309,7 +270,6 @@ test_grad = [_yellow, _white, _black, _blue, _red, _magenta, _green, _cyan, _yel
 for l in obsloc:
     l.append(None)
 
-oldgrad = False
 #theme
 bg_c = [(64, 33, 98),  (80, 39, 88), (98, 47, 75), (117, 55, 62), (134, 62, 51), (153, 70, 38), (168, 77, 28), (184, 83, 17), (209, 94, 0)]
 ban_c = [(209, 94, 0), (184, 83, 17), (168, 77, 28), (153, 70, 38), (117, 55, 62), (98, 47, 75), (80, 39, 88), (64, 33, 98)]
@@ -347,8 +307,6 @@ dficons = [[] for _ in range(12)]
 
 #commercial pre-roll, commercial on-air, unused, warning, unused
 switches = [False, False, False, False, False] #this emulates the 4000's logic switches. why? as baldi once said, historicality
-
-leds = [False, False, False, False, False, False, False, False, False, False, False, sockets, True]
 
 connections = []
 
@@ -395,7 +353,7 @@ linespacing = 40.25
 
 # Initialize drawing module
 draw_mod.init(
-    win=win, screenw=screenw, jr=jr, oldgrad=oldgrad, widescreen=widescreen, old=old,
+    win=win, screenw=screenw, jr=jr, widescreen=widescreen, old=old,
     bg_c=bg_c, ban_c=ban_c, box_c=box_c, bg_g=bg_g, al_g=al_g, ldl_c=ldl_c, outer_c=outer_c,
     smallfont=smallfont, largefont32=largefont32, startitlefont=startitlefont,
     starfont32=starfont32, extendedfont=extendedfont,
@@ -436,10 +394,10 @@ radartime = radarhold+radarint*6
 
 # Initialize resources module
 res.init(
-    loc=loc, metric=metric, flavor=flavor, afos_climate=afos_climate,
+    loc=loc, flavor=flavor, afos_climate=afos_climate,
     tidal=tidal, radar_provider=radar_provider, screenw=screenw,
     obsloc=obsloc, reglocs=reglocs, tcflocs=tcflocs,
-    dficons=dficons, leds=leds, connections=connections,
+    dficons=dficons, connections=connections,
     mainicon=mainicon, ldllficon=ldllficon,
     regmap=regmap, regmapcut=regmapcut,
     mappoint1=mappoint1, mappoint2=mappoint2,
@@ -447,8 +405,7 @@ res.init(
     xficons=xficons,
     mute=mute, ldlfeedactive=ldlfeedactive, ldlfeed=ldlfeed,
     smode=smode, sm2=sm2, lfmusic=lfmusic,
-    audiorate=audiorate, framerate=framerate, vencoder=vencoder, avscale=avscale,
-    outputs=outputs,
+    audiorate=audiorate, framerate=framerate, vencoder=vencoder, avscale=avscale
 )
 
 wxdata = None
@@ -463,86 +420,6 @@ if musicpath:
     for file in os.listdir(musicpath):
         if file.endswith((".mp3", ".wav", ".flac", ".xm", ".mod", ".ogg")) and not file.startswith("."):
             musicfiles.append(os.path.join(musicpath, file))
-
-if sockets and sock:
-    def socket_handler():
-        sock.bind(server_addr)
-        sock.listen(1)
-        global ldlmode, ldlon, ldlreps, ldlidx, switches, connections, leds
-        while True:
-            conn, addr = sock.accept()
-            connections.append(conn)
-            try:
-                while True:
-                    data = conn.recv(1024)
-                    if data:
-                        dtt = data.decode().strip().rstrip()
-
-                        args = dtt.split(" ")
-
-                        if args[0] == "cue":
-                            if ldlmode:
-                                connsendall(conn, f"accepted\n".encode())
-                                ldlmode = False
-                            else:
-                                connsendall(conn, f"no change\n".encode())
-                        elif args[0] in ["cueldl", "cuen'tldl", "f"]: #press a smaller f to pay respects to the ldl
-                            if not ldlon:
-                                reps = 1
-                                if len(args) > 1:
-                                    try:
-                                        reps = int(args[1])
-                                    except:
-                                        pass
-                                connsendall(conn, f"accepted\n".encode())
-                                ldlon = True
-                                ldlreps = reps
-                                ldlidx = 0
-                            else:
-                                connsendall(conn, f"no change\n".encode())
-                        elif args[0] in ["uncue", "cuen't", "F"]: #i'm not renaming it to cancel, and press F to pay respects
-                            if not ldlmode:
-                                connsendall(conn, f"accepted\n".encode())
-                                ldlmode = True
-                            else:
-                                connsendall(conn, f"no change\n".encode())
-                        elif args[0] == "uncueldl":
-                            if ldlon:
-                                connsendall(conn, f"accepted\n".encode())
-                                ldlon = False
-                            else:
-                                connsendall(conn, f"no change\n".encode())
-                        elif args[0] == "status":
-                            status = ""
-                            status += f"ldlmode {'ON' if ldlmode else 'OFF'}\n"
-                            status += f"ldl {'ON' if ldlon else 'OFF'}\n"
-                            status += f"feed {'ON' if ldlfeed else 'OFF'}\n"
-                            status += f"crawltime {crawlinterval}\n"
-                            status += f"crawlidx {crawlactive}\n"
-                            status += f"wxdata {'OK' if wxdata else 'NONE'}\n"
-                            status += f"clidata {'OK' if clidata else 'NONE'}\n"
-                            lfct = 0
-                            for l in obsloc:
-                                if l[2]:
-                                    lfct += 1
-                            status += f"lfdata {lfct}/{len(obsloc)}\n"
-                            switchest = "".join([["0", "1"][e] for e in switches])
-                            status += f"switches {switchest}\n"
-                            ledst = "".join([["0", "1"][e] for e in leds])
-                            status += f"leds {ledst}\n"
-                            status += "statusend\n"
-                            connsendall(conn, status.encode())
-                        elif dtt.strip() == "":
-                            continue
-                        else:
-                            connsendall(conn, f"rejected\n".encode())
-
-                    else:
-                        break
-            finally:
-                conn.close()
-                connections.remove(conn)
-    th.Thread(target=socket_handler, daemon=True).start()
 
 crawling = False
 
@@ -576,31 +453,6 @@ nextcrawlready = False
 
 quit_requested = False
 
-def parse_ext_action(action):
-    if action is None:
-        return
-    for act in action:
-        if act[0] == "set_variable":
-            varname = act[1]
-            value = act[2]
-            globals()[varname] = value
-        elif act[0] == "call_function":
-            funcname = act[1]
-            args = act[2]
-            func = globals()[funcname]
-            func(*args)
-        elif act[0] == "get_variable":
-            varname = act[1]
-            destvar = act[2]
-            value = globals()[varname]
-            globals()[destvar] = value
-        elif act[0] == "execute_code":
-            code = act[1]
-            exec(code)
-        elif act[0] == "quit":
-            global quit_requested
-            quit_requested = True
-
 if mute:
     musicch = None
     voicech = None
@@ -609,21 +461,6 @@ else:
     musicch = pg.mixer.Channel(0)
     voicech = pg.mixer.Channel(1)
     beepch = pg.mixer.Channel(2)
-
-for ext in ext_loaded:
-    if 'init' in ext:
-        ext_action = ext['init']({
-            'drawshadow': drawshadow,
-            'drawpage': drawpage,
-            'drawpage_fmt': drawpage_fmt,
-            'wraptext': wraptext,
-            'padtext': padtext,
-            'textmerge': textmerge,
-            'musicch': musicch,
-            'voicech': voicech,
-            'pygame': pg
-        }) #allow extensions to run init code and access some important functions
-        parse_ext_action(ext_action)
 
 if not mute:
     beep = pg.Sound("assets/beep.ogg")
@@ -656,28 +493,30 @@ audio_queue = q.Queue()
 capframes = []
 
 frame_idx_actual = 0
-if outputs is not None:
-    import fractions as frac
-    streams = []
-    audio_ready_event = th.Event()
-    aq = q.Queue()
-
 p_counter = 0
 
-if musicpath:
-    th.Thread(target=res.domusic, daemon=True).start()
-if ldlfeedactive:
-    th.Thread(target=res.docapture, daemon=True).start()
-    th.Thread(target=res.omnomnomimeatingtheframes, daemon=True).start()
+def domusic():
+    if mute: return
+    mus = None
+    last = ""
+    while True:
+        musicon = True
+        if ldlmode and lfmusic:
+            musicon = False
+        if musicon:
+            if not musicch.get_busy():
+                allowed_this_time = musicfiles.copy()
+                if (len(musicfiles) > 1) and last:
+                    allowed_this_time.remove(last)
+                last = rd.choice(allowed_this_time)
+                mus = pg.mixer.Sound(last)
+                musicch.play(mus)
+        else:
+            musicch.stop()
+        tm.sleep(0.02)
 
-if outputs:
-    avbuffer_ref = [avbuffer]
-    p_counter_ref = [p_counter]
-    frame_idx_actual_ref = [frame_idx_actual]
-    th.Thread(target=res.dowrite, args=(outputs, avevent, avbuffer_ref, p_counter_ref, frame_idx_actual_ref, audio_ready_event), daemon=True).start()
-    if not mute:
-        set_post_mix(res.postmix(audio_queue))
-        th.Thread(target=res.dowriteaudio, args=(outputs, audio_queue, audio_ready_event, frame_idx_actual_ref), daemon=True).start()
+if musicpath:
+    th.Thread(target=domusic, daemon=True).start()
 
 xfbg = pg.image.load("assets/xfbg.png")
 
@@ -690,7 +529,7 @@ iconidx2 = 0
 iconidx3 = 0
 
 working = True
-cl = AccuraterClock()
+cl = AccurateClock()
 
 serial = False
 fired = False
@@ -709,8 +548,6 @@ while working:
             if event.key == pg.K_s:
                 pg.image.save(win, "screenshot.png")
                 pg.image.save(pg.transform.smoothscale_by(win, (1/1.2, 1)), "screenshot_scaled.png")
-                if ldlfeedactive:
-                    pg.image.save(latestframe, "latestframe.png")
                 continue
             elif event.key == pg.K_j:
                 cl.drift = 0
@@ -780,27 +617,6 @@ while working:
         slideidx += 1
         bg_g = draw_palette_gradient(pg.Rect(0, 0, screenw, 315), [*bg_c, bg_c[-1]])
         draw_mod.bg_g = bg_g
-        for ext in ext_loaded:
-            if 'slide_change' in ext:
-                ext_action = ext['pre_draw'](win, {
-                    'textpos': textpos,
-                    'ldlmode': ldlmode,
-                    'ui': ui,
-                    'slide': slide,
-                    'slideidx': slideidx,
-                    'veryuppercase': veryuppercase,
-                    'wxdata': wxdata,
-                    'clidata': clidata,
-                    'radardata': radardata,
-                    'locname': locname,
-                    'crawlactive': crawlactive,
-                    'crawlscroll': crawlscroll,
-                    'ldlidx': ldlidx,
-                    'alertdata': alertdata,
-                    'alertactive': alertactive,
-                    'frame_idx_actual': frame_idx_actual #this one isn't as useful but it provides a frame count
-                })
-                parse_ext_action(ext_action)
         if forever:
             slideidx %= len(flavor)
             slideinterval = flavor_times[slideidx]*seconds
@@ -857,32 +673,8 @@ while working:
     if crawls:
         crawlactive %= len(crawls)
     if not working or quit_requested:
-        for ext in ext_loaded:
-            if 'quit' in ext:
-                ext_action = ext['quit'](win, {}) #allow extensions to cleanup
-                parse_ext_action(ext_action)
         pg.quit()
         break
-    for ext in ext_loaded:
-        if 'pre_draw' in ext:
-            ext_action = ext['pre_draw'](win, {
-                'textpos': textpos,
-                'ldlmode': ldlmode,
-                'ui': ui,
-                'slide': slide,
-                'veryuppercase': veryuppercase,
-                'wxdata': wxdata,
-                'clidata': clidata,
-                'radardata': radardata,
-                'locname': locname,
-                'crawlactive': crawlactive,
-                'crawlscroll': crawlscroll,
-                'ldlidx': ldlidx,
-                'alertdata': alertdata,
-                'alertactive': alertactive,
-                'frame_idx_actual': frame_idx_actual #this one isn't as useful but it provides a frame count
-            }) #allow extensions to run code before drawing each frame
-            parse_ext_action(ext_action)
     ao = 0
     if textpos >= 2:
         ao = 16
@@ -893,9 +685,6 @@ while working:
     if ldlmode:
         win.fill((255, 0, 255))
         win.blit(ws2, (0, 0))
-        if ldlfeedactive and latestframe is not None:
-            win.fill((0, 0, 0))
-            win.blit(latestframe, (screenw//2-latestframe.width/2, 240-latestframe.height/2))
     else:
         if (slide == "oldcc"):
             draw_bg(top_offset=(192*("fullOldCC" not in old)), all_offset=ao, bh_offset=ao//2)
@@ -937,14 +726,11 @@ while working:
                     page.append(textmerge(f'Humidity: {wxdata["current"]["conditions"]["humidity"]}%',
                                     f'                 Dewpoint:{padtext(wxdata["current"]["conditions"]["dewPoint"], 3)}°'+temp_symbol))
 
-                    if metric:
-                        bp = f'{wxdata["current"]["conditions"]["pressure"]/10:.1f}'
-                    else:
-                        bp = f'{wxdata["current"]["conditions"]["pressure"]:5.2f}'
+                    bp = f'{wxdata["current"]["conditions"]["pressure"]:5.2f}'
                     bptext = f'Barometric Pressure: {bp}'
                     pt = wxdata["current"]["conditions"]["pressureTendency"]
                     if pressuretrend == False:
-                        bptext += " in." if not metric else "kPa"
+                        bptext += " in."
                     elif pt == 0:
                         bptext += " S"
                     elif pt in [1, 3]:
@@ -1008,12 +794,9 @@ while working:
                     drawshadow(starfont32, "Visibility:", 394+txoff, 261+ldl_y, 3, ofw=1.07, mono=14.5, upper=veryuppercase)
                     drawshadow(starfont32, f"  {padtext(round(wxdata['current']['conditions']['visibility']), 2)}{long_dist}", 540+txoff, 261+ldl_y, 3, mono=17.5, upper=veryuppercase)
 
-                    if metric:
-                        bp = f'{wxdata["current"]["conditions"]["pressure"]/10:.2f}'
-                    else:
-                        bp = f'{wxdata["current"]["conditions"]["pressure"]:5.2f}'
-                    drawshadow(starfont32, "Pressure :" if ("ccspace" in old and not metric) else "Pressure:", 394+txoff, 304+ldl_y, 3, ofw=1.07, mono=14.5, upper=veryuppercase)
-                    drawshadow(starfont32, bp, 537-12*metric+txoff, 304+ldl_y, 3, mono=18, char_offsets={}, upper=veryuppercase)
+                    bp = f'{wxdata["current"]["conditions"]["pressure"]:5.2f}'
+                    drawshadow(starfont32, "Pressure :" if "ccspace" in old else "Pressure:", 394+txoff, 304+ldl_y, 3, ofw=1.07, mono=14.5, upper=veryuppercase)
+                    drawshadow(starfont32, bp, 537+txoff, 304+ldl_y, 3, mono=18, char_offsets={}, upper=veryuppercase)
                     pt = wxdata["current"]["conditions"]["pressureTendency"]
                     if pt == 0:
                         drawshadow(starfont32, f"     S", 543+txoff, 304+ldl_y, 3, mono=18, color=yeller, char_offsets={}, upper=veryuppercase)
@@ -1461,7 +1244,6 @@ while working:
 
     if alerting != switches[3]:
         switches[3] = alerting
-        sendtoall(f"switch 3 {int(alerting)}\n".encode())
 
     if al1 and alerting and not mute:
         beepch.play(beep)
@@ -1508,14 +1290,11 @@ while working:
                                         f'{ldlspace}                 Dewpoint:{padtext(wxdata["current"]["conditions"]["dewPoint"], 3)}°{temp_symbol}')
             elif ldlidx == 4:
                 if wxdata is not None:
-                    if metric:
-                        bp = f'{wxdata["current"]["conditions"]["pressure"]/10:.2f}'
-                    else:
-                        bp = f'{wxdata["current"]["conditions"]["pressure"]:5.2f}'
+                    bp = f'{wxdata["current"]["conditions"]["pressure"]:5.2f}'
                     ldltext = f'Barometric Pressure: {bp}'
                     pt = wxdata["current"]["conditions"]["pressureTendency"]
                     if pressuretrend == False:
-                        ldltext += " in." if not metric else "kPa"
+                        ldltext += " in."
                     elif pt == 0:
                         ldltext += " S"
                     elif pt in [1, 3]:
@@ -1720,27 +1499,6 @@ while working:
             drawshadow(smallfont, time.upper(), 465+round((screenw-768)*2/3)-2, 28, 3, mono=gmono, color=tcl, char_offsets={})
             drawshadow(smallfont, date.upper(), 465+round((screenw-768)*2/3), 48, 3, mono=gmono, char_offsets={})
 
-    for ext in ext_loaded:
-        if 'post_draw' in ext:
-            ext_action = ext['post_draw'](win, {
-                'textpos': textpos,
-                'ldlmode': ldlmode,
-                'ui': ui,
-                'slide': slide,
-                'veryuppercase': veryuppercase,
-                'wxdata': wxdata,
-                'clidata': clidata,
-                'radardata': radardata,
-                'locname': locname,
-                'crawlactive': crawlactive,
-                'crawlscroll': crawlscroll,
-                'ldlidx': ldlidx,
-                'alertdata': alertdata,
-                'alertactive': alertactive,
-                'frame_idx_actual': frame_idx_actual #this one isn't as useful but it provides a frame count
-            }) #allow extensions to run per-frame code
-            parse_ext_action(ext_action)
-
     if type(lasttime) != int:
         lastlasttime = lasttime + ""
     lasttime = time + ""
@@ -1770,15 +1528,8 @@ while working:
     rwin.blit(tr, (rwin.get_width()/2-tr.get_width()/2, rwin.get_height()/2-tr.get_height()/2))
     del tr
     pg.display.flip()
-    if outputs:
-        avbuffer_ref[0] = win.copy()
-        avevent.set()
     frame_idx_actual += 1
-    if outputs:
-        frame_idx_actual_ref[0] = frame_idx_actual
     p_counter += 1
     p_counter %= 512
-    if outputs:
-        p_counter_ref[0] = p_counter
 
 pg.quit()

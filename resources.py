@@ -171,7 +171,6 @@ def quickread(file):
     with open(file, "r") as f:
         return f.read().strip().rstrip()
 
-
 def loadjrfont(name):
     surfs = (pg.image.load(f"fonts/jrfonts/fill/{name}.png").convert_alpha(), pg.image.load(f"fonts/jrfonts/shadow/{name}.png").convert_alpha())
     widths = quickread(f"fonts/jrfonts/fill/{name}.widths.txt").split(",")
@@ -182,22 +181,8 @@ def loadjrfont(name):
     widths = [int(x) for x in widths]
     return surfs, widths, off2
 
-
-def connsendall(conn, data):
-    try:
-        conn.sendall(data)
-    except BrokenPipeError:
-        pass
-
-
-def sendtoall(data):
-    for connection in connections:
-        connsendall(connection, data)
-
-
 # Module-level shared state - set by main.py before starting threads
 loc = ""
-metric = False
 flavor = []
 afos_climate = ""
 tidal = ("", "", "", "")
@@ -207,7 +192,6 @@ obsloc = []
 reglocs = []
 tcflocs = []
 dficons = [[] for _ in range(12)]
-leds = [False]*13
 connections = []
 wxdata = None
 clidata = None
@@ -232,7 +216,6 @@ ldlmode = False
 lfmusic = False
 mute = False
 ldlfeed = None
-ldlfeedactive = False
 smode = 0
 sm2 = True
 latestframe = None
@@ -241,7 +224,6 @@ ffps = 0
 flock = th.Lock()
 
 # Streaming state
-outputs = None
 audiorate = 44100
 framerate = 60
 vencoder = "libx264"
@@ -257,17 +239,15 @@ def init(**kwargs):
 def getdata():
     ix = 0
     global wxdata, clidata, alertdata, mainicon, ldllficon, radardata, aldata
-    global leds, regmapcut, regmappos, xficons
+    global regmapcut, regmappos, xficons
     datagot = False
 
     while True:
         if datagot:
             ix += 1
             ix %= 60
-        leds[6] = True
-        sendtoall(f"led 6 1\n".encode())
         try:
-            wxdata = r.get(f"https://wx.lewolfyt.cc/?loc={loc}"+("" if not metric else "&units=m")+"&extendeddays=10").json()
+            wxdata = r.get(f"https://wx.lewolfyt.cc/?loc={loc}"+"&extendeddays=10").json()
 
             if icontable[wxdata['current']['info']['iconCode']] is None:
                 mainicon = [(pg.Surface((1, 1), pg.SRCALPHA), None)]
@@ -338,7 +318,6 @@ def getdata():
                     for fr, ftime in xficon:
                         ficon.append((fr.convert_alpha(), ftime))
                 xficons[i] = ficon
-            leds[1] = True
         except:
             print(tb.format_exc())
 
@@ -400,27 +379,24 @@ def getdata():
 
         def get_obsloc(l):
             try:
-                l[2] = r.get(f"https://wx.lewolfyt.cc/?loc={l[0]}&include=current"+("" if not metric else "&units=m")).json()
-                leds[1] = True
+                l[2] = r.get(f"https://wx.lewolfyt.cc/?loc={l[0]}&include=current").json()
             except:
                 print(tb.format_exc())
         print("gre")
         def get_regloc(l):
             try:
-                l[2] = r.get(f"https://wx.lewolfyt.cc/?loc={l[0]}&include=current"+("" if not metric else "&units=m")).json()
+                l[2] = r.get(f"https://wx.lewolfyt.cc/?loc={l[0]}&include=current").json()
                 l3 = pg.image.load_animation(f'icons/icons_reg/{regionalicontable[l[2]["current"]["info"]["iconCode"]]}.gif')
                 l[3] = [(l[0].convert_alpha(), l[1]) for l in l3]
                 #print("got reg icon")
-                leds[1] = True
             except:
                 print(tb.format_exc())
         def get_tcfloc(l):
             try:
-                l[2] = r.get(f"https://wx.lewolfyt.cc/?loc={l[0]}&include=extended"+("" if not metric else "&units=m")).json()
+                l[2] = r.get(f"https://wx.lewolfyt.cc/?loc={l[0]}&include=extended").json()
                 l3 = pg.image.load_animation(f'icons/icons_reg/{regionalicontable[l[2]["extended"]["daypart"][1+(l[2]["extended"]["daypart"][0]["dayOrNight"]=="D")]["iconCode"]]}.gif')
                 l[3] = [(l[0].convert_alpha(), l[1]) for l in l3]
                 #print("got reg icon")
-                leds[1] = True
             except:
                 print(tb.format_exc())
         if "lo" in flavor:
@@ -487,7 +463,6 @@ def getdata():
 
             clidata = {"month_precip": section, "temp_outlook": dev1*sign(ts), "precip_outlook": dev2*sign(rs)}
             datagot = True
-            leds[1] = True
         except:
             print(tb.format_exc())
 
@@ -507,7 +482,6 @@ def getdata():
                         r2.blit(rad, (0, 0), pg.Rect(x, y, screenw//2, 240))
                         radardata2.append((pg.transform.scale_by(r2, (2, 2)), t))
                     radardata = radardata2
-                leds[1] = True
             except:
                 print(tb.format_exc())
         elif "cr" in flavor:
@@ -525,289 +499,8 @@ def getdata():
                     r2.blit(radardt, (0, 0), pg.Rect(x, y, screenw//2, 240))
                     radardata2.append((pg.transform.scale_by(r2, (2, 2)), 0))
                     radardata = radardata2
-                leds[1] = True
             except:
                 print(tb.format_exc())
-        leds[6] = False
-        sendtoall(f"led 6 0\n".encode())
         gc.collect()
         for i in range(300):
             tm.sleep(1)
-
-
-def domusic():
-    if mute:
-        return
-    mus = None
-    last = ""
-    while True:
-        musicon = True
-        if ldlmode and lfmusic:
-            musicon = False
-        if musicon:
-            if not musicch.get_busy():
-                allowed_this_time = musicfiles.copy()
-                if (len(musicfiles) > 1) and last:
-                    allowed_this_time.remove(last)
-                last = rd.choice(allowed_this_time)
-                mus = pg.mixer.Sound(last)
-                musicch.play(mus)
-        else:
-            musicch.stop()
-        tm.sleep(0.02)
-
-
-def omnomnomimeatingtheframes():
-    global latestframe, capframes
-    next_time = tm.perf_counter()
-    while True:
-        if ffps == 0:
-            tm.sleep(0.01)
-            next_time = tm.perf_counter()
-            continue
-
-        interval = 1.0 / float(ffps)
-        next_time += interval
-        if len(capframes) == 0:
-            tm.sleep(0.01)
-            next_time = tm.perf_counter()
-            continue
-        with flock:
-            try:
-                latestframe = capframes.pop(0)
-            except:
-                next_time = tm.perf_counter()
-                continue
-            if len(capframes) > 1200:
-                capframes = capframes[600:]
-                print("clipped capture frames! running slow?")
-
-        #all programs need their sleep
-        sleep_time = next_time - tm.perf_counter()
-        if sleep_time > 0:
-            tm.sleep(sleep_time)
-        else:
-            if -sleep_time > 1.0:
-                next_time = tm.perf_counter()
-
-
-def docapture():
-    global latestframe, ffps
-    import cv2
-    if ldlfeedactive:
-        vidcap = cv2.VideoCapture(ldlfeed)
-        if not vidcap.isOpened():
-            vidcap = None
-            print("Video could not be opened!")
-    else:
-        vidcap = None
-    print("Capture active!")
-    #last = tm.time()
-
-    ret_counter = 0
-    reconnects = 0
-    while True:
-        if vidcap:
-            ret, frame = vidcap.read()
-            fps = vidcap.get(cv2.CAP_PROP_FPS)
-            ffps = fps
-            if not leds[0]:
-                leds[0] = True
-                sendtoall(f"led 0 1\n".encode())
-        else:
-            ret = False
-            fps = 0
-            if leds[0]:
-                leds[0] = False
-                sendtoall(f"led 0 0\n".encode())
-        if fps == 0:
-            tm.sleep(0.01)
-            continue
-        if not ret:
-            if ret_counter <= 4:
-                tm.sleep(2)
-                ret_counter += 1
-                print(f"no ret [{ret_counter}]")
-            if ret_counter > 4:
-                if ret_counter == 5:
-                    print("too many losses! reconnecting...")
-                vidcap.release()
-                vidcap = cv2.VideoCapture(ldlfeed)
-                reconnects += 1
-                ss = "s" if reconnects > 1 else ""
-                if not vidcap.isOpened():
-                    vidcap = None
-                    print(f"reconnect failed! [{reconnects} attempt{ss}]")
-                else:
-                    print(f"reconnect success! [after {reconnects} attempt{ss}]")
-                    reconnects = 0
-                    ret_counter = 0
-            continue
-        else:
-            ret_counter = 0
-
-        frame2 = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame2 = cv2.transpose(frame2)
-        if smode == 0:
-            scaled = cv2.resize(frame2, (480, screenw))
-        fr_size = (vidcap.get(cv2.CAP_PROP_FRAME_WIDTH), vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        if smode == 1:
-            scaled = cv2.resize(frame2, (int(480 * fr_size[1] / fr_size[0] * (4/3 if sm2 else 1)), screenw))
-        if smode == 2:
-            scaled = cv2.resize(frame2, (480, int(fr_size[0]/fr_size[1]*(1.2 if sm2 else 1)*480)))
-        latestframe = pg.surfarray.make_surface(scaled)
-
-        with flock:
-            capframes.append(latestframe)
-
-
-def setupstream(url):
-    import av
-    s = av.open(url, mode="w", format="flv")
-    st = s.add_stream(vencoder, rate=framerate)
-    at = None
-    if not mute:
-        at = s.add_stream("aac", rate=audiorate)
-        at.layout = "stereo"
-    st.width = avscale[0]
-    st.height = avscale[1]
-    st.pix_fmt = "yuv420p"
-    return (s, st, at, url)
-
-
-# Streaming state managed by main
-framelists = {}
-audlists = {}
-frame_start_evt = th.Event()
-resetup = set()
-
-def dowrite_th(strea : tuple, url):
-    global resetup
-    stream = tuple(strea)
-    frame_start_evt.wait()
-    while True:
-        if stream in resetup:
-            st = stream[3]
-            try:
-                stream[0].close()
-            except:
-                pass
-            stream = setupstream(st)
-            print(f"Reset stream {st[:20]}...")
-            resetup.remove(stream)
-
-        if len(framelists[url]) > 0:
-            frame = framelists[url].pop(0)
-        else:
-            tm.sleep(0.01)
-            continue
-
-        if not mute:
-            import av
-            while len(audlists[url]) > 0:
-                try:
-                    af = audlists[url].pop(0)
-                except:
-                    break
-                try:
-                    for packet in stream[2].encode(af):
-                        stream[0].mux(packet)
-                except (av.BrokenPipeError, av.EOFError):
-                    resetup.add(url)
-
-        try:
-            import av
-            for packet in stream[1].encode(frame):
-                stream[0].mux(packet)
-        except (av.BrokenPipeError, av.EOFError):
-            resetup.add(url)
-
-
-def dowrite(outputs_list, avevent, avbuffer_ref, p_counter_ref, frame_idx_actual_ref, audio_ready_event):
-    import av
-    import fractions as frac
-
-    streams2 = {}
-    threads = []
-
-    for out in outputs_list:
-        stre = setupstream(out)
-        streams2[out] = (stre, 0)
-        framelists[out] = []
-        audlists[out] = []
-        h = th.Thread(target=dowrite_th, args=(stre, out))
-        h.start()
-        threads.append(h)
-
-    frame_start_evt.set()
-    audio_ready_event.set()
-    last_p = 0
-    while True:
-        avevent.wait()
-        avevent.clear()
-
-        if last_p == p_counter_ref[0]:
-            avevent.clear()
-            continue
-        sdata = pg.surfarray.array3d(avbuffer_ref[0]).transpose([1, 0, 2])
-        frame = av.VideoFrame.from_ndarray(sdata, format="rgb24")
-        frame = frame.reformat(format="yuv420p")
-        frame.pts = frame_idx_actual_ref[0]
-        frame.time_base = frac.Fraction(1, framerate)
-        for out in outputs_list:
-            framelists[out].append(frame)
-        last_p = p_counter_ref[0] * 1
-
-
-def dowriteaudio(outputs_list, audio_queue, audio_ready_event, frame_idx_actual_ref):
-    import av
-    import fractions as frac
-    if mute:
-        return
-    audio_ready_event.wait()
-    while True:
-        try:
-            buf = audio_queue.get_nowait()
-        except:
-            tm.sleep(0.01)
-            continue
-
-        n_int = len(buf) // 4
-        af = av.AudioFrame(format="s16", layout="stereo", samples=n_int)
-        af.sample_rate = audiorate
-        af.planes[0].update(buf)
-        af.time_base = frac.Fraction(1, 60)
-        af.pts = frame_idx_actual_ref[0]
-        for out in outputs_list:
-            audlists[out].append(af)
-
-
-def postmix(audio_queue):
-    def _postmix(dev, mem):
-        audio_queue.put_nowait(bytes(mem))
-    return _postmix
-
-
-def parse_ext_action(action, globals_dict):
-    if action is None:
-        return
-    for act in action:
-        if act[0] == "set_variable":
-            varname = act[1]
-            value = act[2]
-            globals_dict[varname] = value
-        elif act[0] == "call_function":
-            funcname = act[1]
-            args = act[2]
-            func = globals_dict[funcname]
-            func(*args)
-        elif act[0] == "get_variable":
-            varname = act[1]
-            destvar = act[2]
-            value = globals_dict[varname]
-            globals_dict[destvar] = value
-        elif act[0] == "execute_code":
-            code = act[1]
-            exec(code, globals_dict)
-        elif act[0] == "quit":
-            globals_dict["quit_requested"] = True

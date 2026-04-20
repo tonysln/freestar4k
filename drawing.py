@@ -9,7 +9,6 @@ from calculations import (profiling_sect, chars, chars_symbol, lerp, wraptext)
 win = None
 screenw = 768
 jr = True
-oldgrad = False
 widescreen = False
 old = {""}
 
@@ -102,16 +101,7 @@ def draw_bg(top_offset=0, bh_offset=0, all_offset=0, special=None, box=True):
     if special == "al":
         win.fill((64, 64, 64))
     if special != "al":
-        if oldgrad:
-            pg.draw.rect(win, bg_c[0], pg.Rect(0, 90-all_offset, screenw, 45))
-            pg.draw.rect(win, bg_c[1], pg.Rect(0, 135-all_offset, screenw, 45))
-            pg.draw.rect(win, bg_c[2], pg.Rect(0, 180-all_offset, screenw, 45))
-            pg.draw.rect(win, bg_c[3], pg.Rect(0, 225-all_offset, screenw, 45))
-            pg.draw.rect(win, bg_c[4], pg.Rect(0, 270-all_offset, screenw, 45))
-            pg.draw.rect(win, bg_c[5], pg.Rect(0, 315-all_offset, screenw, 45))
-            pg.draw.rect(win, bg_c[6], pg.Rect(0, 360-all_offset, screenw, 45))
-        else:
-            win.blit(bg_g, (0, 90-all_offset))
+        win.blit(bg_g, (0, 90-all_offset))
     if not special and box:
         xoff = (screenw-768)//2
         pg.draw.rect(win, box_c[0], pg.Rect(62+xoff, 90-all_offset, 622, 310-bh_offset))
@@ -120,11 +110,7 @@ def draw_bg(top_offset=0, bh_offset=0, all_offset=0, special=None, box=True):
         pg.draw.rect(win, box_c[3], pg.Rect(74+xoff, 102-all_offset, 598, 286-bh_offset))
         pg.draw.rect(win, box_c[4], pg.Rect(78+xoff, 106-all_offset, 590, 278-bh_offset))
     if special == "al":
-        if "oldal" not in old:
-            win.blit(al_g, (0, 91-all_offset))
-        else:
-            pg.draw.rect(win, bg_c[1], pg.Rect(0, 91-all_offset, screenw, 48+3))
-            pg.draw.rect(win, bg_c[2], pg.Rect(0, 91+48+3-all_offset, screenw, 48+3))
+        win.blit(al_g, (0, 91-all_offset))
     if special == "df":
         xoff = (screenw-768)//2
         adjust = -6

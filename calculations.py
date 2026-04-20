@@ -215,11 +215,10 @@ def drawing(text, amount, ram=False):
 
 def windreduce(text):
     rep = {"NNE": "NE", "ENE": "NE", "ESE": "SE", "SSE": "SE", "SSW": "SW", "WSW": "SW", "WNW": "NW", "NNW": "NW"}
-    if text in rep:
-        return rep[text]
+    if text in rep: return rep[text]
     return text
 
-class AccuraterClock():
+class AccurateClock():
     def __init__(self):
         #next_frame holds the target time for the next frame (perf_counter)
         self.next_frame = tm.perf_counter()
@@ -251,24 +250,3 @@ class AccuraterClock():
         self.next_frame += frame_duration
 
         return 1000.0 / float(fps)
-
-class AccurateClock():
-    def __init__(self):
-        self.drift = 0
-        self.last = tm.perf_counter()
-    def tick(self, fps):
-        #last frame took 8ms?
-        diff = tm.perf_counter()-self.last
-        #8ms diff
-        self.drift += diff
-        #add 8ms to drift
-        self.drift -= 1/fps
-        #subtract frame time
-        #diff is negative, wait
-        self.drift = min(self.drift, -1/fps)
-        self.drift = max(self.drift, 2)
-        if self.drift < 0:
-            tm.sleep(-self.drift)
-            self.drift = 0
-        self.last = tm.perf_counter()
-        return 1000/fps
